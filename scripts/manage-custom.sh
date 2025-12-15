@@ -1536,9 +1536,9 @@ create_symlink() {
     # 获取脚本的绝对路径
     local script_path=""
     
-    # 优先使用项目中的 manage.sh（在 app/scripts 目录下）
-    if [ -n "$APP_DIR" ] && [ -f "$APP_DIR/scripts/manage.sh" ]; then
-        script_path="$APP_DIR/scripts/manage.sh"
+    # 优先使用项目中的 manage-custom.sh（自定义脚本）
+    if [ -n "$APP_DIR" ] && [ -f "$APP_DIR/scripts/manage-custom.sh" ]; then
+        script_path="$APP_DIR/scripts/manage-custom.sh"
         # 确保脚本有执行权限
         chmod +x "$script_path" 2>/dev/null || sudo chmod +x "$script_path" 2>/dev/null || true
     elif [ -f "/app/scripts/manage.sh" ] && [ "$(basename "$0")" = "manage.sh" ]; then
