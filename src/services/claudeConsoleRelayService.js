@@ -1098,22 +1098,28 @@ class ClaudeConsoleRelayService {
                 }
               }
             } catch (error) {
+              // 记录完整错误信息（包含堆栈）用于调试
               logger.error(
                 `❌ Error processing Claude Console stream data (Account: ${account?.name || accountId}):`,
-                error
+                {
+                  message: error.message,
+                  stack: error.stack,
+                  accountId: accountId
+                }
               )
               if (isStreamWritable(responseStream)) {
+                // 清理错误消息，移除敏感信息
+                const sanitizedMessage = sanitizeErrorMessage(error.message || 'Stream parse error')
                 // 如果有 streamTransformer（如测试请求），使用前端期望的格式
                 if (streamTransformer) {
                   responseStream.write(
-                    `data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`
+                    `data: ${JSON.stringify({ type: 'error', error: sanitizedMessage })}\n\n`
                   )
                 } else {
                   responseStream.write('event: error\n')
                   responseStream.write(
                     `data: ${JSON.stringify({
-                      error: 'Stream processing error',
-                      message: error.message,
+                      error: sanitizedMessage,
                       timestamp: new Date().toISOString()
                     })}\n\n`
                   )
@@ -1208,22 +1214,32 @@ class ClaudeConsoleRelayService {
           })
 
           response.data.on('error', (error) => {
+            // 记录完整的上游流错误
             logger.error(
               `❌ Claude Console stream error (Account: ${account?.name || accountId}):`,
-              error
+              {
+                message: error.message,
+                code: error.code,
+                stack: error.stack,
+                accountId: accountId
+              }
             )
             if (isStreamWritable(responseStream)) {
+              // 清理错误消息，移除敏感信息
+              const sanitizedMessage = sanitizeErrorMessage(
+                error.message || 'Upstream stream error'
+              )
               // 如果有 streamTransformer（如测试请求），使用前端期望的格式
               if (streamTransformer) {
                 responseStream.write(
-                  `data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`
+                  `data: ${JSON.stringify({ type: 'error', error: sanitizedMessage })}\n\n`
                 )
               } else {
                 responseStream.write('event: error\n')
                 responseStream.write(
                   `data: ${JSON.stringify({
-                    error: 'Stream error',
-                    message: error.message,
+                    error: sanitizedMessage,
+                    code: error.code,
                     timestamp: new Date().toISOString()
                   })}\n\n`
                 )
@@ -1238,9 +1254,17 @@ class ClaudeConsoleRelayService {
             return
           }
 
+          // 记录完整的网络错误（包含代理、URL等敏感信息）用于调试
           logger.error(
             `❌ Claude Console stream request error (Account: ${account?.name || accountId}):`,
-            error.message
+            {
+              message: error.message,
+              code: error.code,
+              stack: error.stack,
+              accountId: accountId,
+              url: error.config?.url,
+              proxy: error.config?.proxy
+            }
           )
 
           // 检查错误状态
@@ -1271,16 +1295,18 @@ class ClaudeConsoleRelayService {
           }
 
           if (isStreamWritable(responseStream)) {
+            // 清理错误消息，移除敏感信息（如代理地址、内部URL等）
+            const sanitizedMessage = sanitizeErrorMessage(error.message || 'Stream request error')
             // 如果有 streamTransformer（如测试请求），使用前端期望的格式
             if (streamTransformer) {
               responseStream.write(
-                `data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`
+                `data: ${JSON.stringify({ type: 'error', error: sanitizedMessage })}\n\n`
               )
             } else {
               responseStream.write('event: error\n')
               responseStream.write(
                 `data: ${JSON.stringify({
-                  error: error.message,
+                  error: sanitizedMessage,
                   code: error.code,
                   timestamp: new Date().toISOString()
                 })}\n\n`
