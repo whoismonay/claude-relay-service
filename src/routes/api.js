@@ -12,7 +12,7 @@ const { getEffectiveModel, parseVendorPrefixedModel } = require('../utils/modelH
 const sessionHelper = require('../utils/sessionHelper')
 const { updateRateLimitCounters } = require('../utils/rateLimitHelper')
 const claudeRelayConfigService = require('../services/claudeRelayConfigService')
-const { sanitizeUpstreamError } = require('../utils/errorSanitizer')
+const { sanitizeUpstreamError, sanitizeErrorMessage } = require('../utils/errorSanitizer')
 const router = express.Router()
 
 function queueRateLimitUpdate(rateLimitInfo, usageSummary, model, context = '') {
@@ -586,7 +586,7 @@ async function handleMessagesRequest(req, res) {
         } catch (error) {
           logger.error('❌ Bedrock stream request failed:', error)
           if (!res.headersSent) {
-            return res.status(500).json({ error: 'Bedrock service error', message: error.message })
+            return res.status(500).json({ error: 'Bedrock service error', message: sanitizeErrorMessage(error.message) })
           }
           return undefined
         }
@@ -923,7 +923,7 @@ async function handleMessagesRequest(req, res) {
           response = {
             statusCode: 500,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ error: 'Bedrock service error', message: error.message }),
+            body: JSON.stringify({ error: 'Bedrock service error', message: sanitizeErrorMessage(error.message) }),
             accountId
           }
         }
@@ -1140,7 +1140,7 @@ async function handleMessagesRequest(req, res) {
 
       return res.status(statusCode).json({
         error: errorType,
-        message: handledError.message || 'An unexpected error occurred',
+        message: sanitizeErrorMessage(handledError.message || 'An unexpected error occurred'),
         timestamp: new Date().toISOString()
       })
     } else {
@@ -1182,7 +1182,7 @@ router.get('/v1/models', authenticateApiKey, async (req, res) => {
     logger.error('❌ Models list error:', error)
     res.status(500).json({
       error: 'Failed to get models list',
-      message: error.message
+      message: sanitizeErrorMessage(error.message)
     })
   }
 })
@@ -1203,7 +1203,7 @@ router.get('/health', async (req, res) => {
     res.status(503).json({
       status: 'unhealthy',
       service: 'claude-relay-service',
-      error: error.message,
+      error: sanitizeErrorMessage(error.message),
       timestamp: new Date().toISOString()
     })
   }
@@ -1227,7 +1227,7 @@ router.get('/v1/key-info', authenticateApiKey, async (req, res) => {
     logger.error('❌ Key info error:', error)
     res.status(500).json({
       error: 'Failed to get key info',
-      message: error.message
+      message: sanitizeErrorMessage(error.message)
     })
   }
 })
@@ -1249,7 +1249,7 @@ router.get('/v1/usage', authenticateApiKey, async (req, res) => {
     logger.error('❌ Usage stats error:', error)
     res.status(500).json({
       error: 'Failed to get usage stats',
-      message: error.message
+      message: sanitizeErrorMessage(error.message)
     })
   }
 })
@@ -1268,7 +1268,7 @@ router.get('/v1/me', authenticateApiKey, async (req, res) => {
     logger.error('❌ User info error:', error)
     res.status(500).json({
       error: 'Failed to get user info',
-      message: error.message
+      message: sanitizeErrorMessage(error.message)
     })
   }
 })
@@ -1291,7 +1291,7 @@ router.get('/v1/organizations/:org_id/usage', authenticateApiKey, async (req, re
     logger.error('❌ Organization usage error:', error)
     res.status(500).json({
       error: 'Failed to get usage info',
-      message: error.message
+      message: sanitizeErrorMessage(error.message)
     })
   }
 })

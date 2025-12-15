@@ -22,25 +22,26 @@ function sanitizeErrorMessage(message) {
   cleaned = cleaned.replace(/(?:see|check)\s+(?:our|the)\s+\S*/gi, '') // 移除 "see our xxx"
   cleaned = cleaned.replace(/(?:contact|reach)\s+(?:us|support)\s+at\s+\S*/gi, '') // 移除联系信息
 
-  // 移除供应商特定关键词（包括整个单词）
-  cleaned = cleaned.replace(/88code\S*/gi, '')
-  cleaned = cleaned.replace(/duck\S*/gi, '')
-  cleaned = cleaned.replace(/packy\S*/gi, '')
-  cleaned = cleaned.replace(/packyapi\S*/gi, '')
-  cleaned = cleaned.replace(/ikun\S*/gi, '')
-  cleaned = cleaned.replace(/privnode\S*/gi, '')
-  cleaned = cleaned.replace(/yescode\S*/gi, '')
-  cleaned = cleaned.replace(/yes\.vg\S*/gi, '')
-  cleaned = cleaned.replace(/share\S*/gi, '')
-  cleaned = cleaned.replace(/yhlxj\S*/gi, '')
-  cleaned = cleaned.replace(/gac\S*/gi, '')
-  cleaned = cleaned.replace(/driod\S*/gi, '')
-  cleaned = cleaned.replace(/cubence\S*/gi, '')
-  cleaned = cleaned.replace(/api-key\.info\S*/gi, '')
-  cleaned = cleaned.replace(/openclaudecode\S*/gi, '')
-  cleaned = cleaned.replace(/airaphe\S*/gi, '')
-  cleaned = cleaned.replace(/tuza\S*/gi, '')
-  cleaned = cleaned.replace(/i7dc\S*/gi, '')
+  // 移除供应商特定关键词（包括整个域名和所有子域名）
+  // 使用 \S*keyword\S* 模式匹配包含关键词的完整域名（如 1.www.openclaudecode.cn）
+  cleaned = cleaned.replace(/\S*88code\S*/gi, '')
+  cleaned = cleaned.replace(/\S*duck\S*/gi, '')
+  cleaned = cleaned.replace(/\S*packy\S*/gi, '')
+  cleaned = cleaned.replace(/\S*packyapi\S*/gi, '')
+  cleaned = cleaned.replace(/\S*ikun\S*/gi, '')
+  cleaned = cleaned.replace(/\S*privnode\S*/gi, '')
+  cleaned = cleaned.replace(/\S*yescode\S*/gi, '')
+  cleaned = cleaned.replace(/\S*yes\.vg\S*/gi, '')
+  cleaned = cleaned.replace(/\S*share\S*/gi, '')
+  cleaned = cleaned.replace(/\S*yhlxj\S*/gi, '')
+  cleaned = cleaned.replace(/\S*gac\S*/gi, '')
+  cleaned = cleaned.replace(/\S*driod\S*/gi, '')
+  cleaned = cleaned.replace(/\S*cubence\S*/gi, '')
+  cleaned = cleaned.replace(/\S*api-key\.info\S*/gi, '')
+  cleaned = cleaned.replace(/\S*openclaudecode\S*/gi, '')
+  cleaned = cleaned.replace(/\S*airaphe\S*/gi, '')
+  cleaned = cleaned.replace(/\S*tuza\S*/gi, '')
+  cleaned = cleaned.replace(/\S*i7dc\S*/gi, '')
 
   cleaned = cleaned.replace(/\s+/g, ' ').trim()
 
