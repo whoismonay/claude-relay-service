@@ -35,6 +35,9 @@ app.log
 config/config.js
 !config/config.example.js
 
+# Frontend build files (force include for deployment)
+!web/admin-spa/dist/
+
 # Runtime data
 pids/
 *.pid

@@ -676,96 +676,33 @@ update_service() {
         chmod +x "$APP_DIR/scripts/manage.sh"
     fi
     
-    # 获取最新的预构建前端文件
-    print_info "更新前端文件..."
-    
-    # 创建目标目录
-    mkdir -p web/admin-spa/dist
-    
-    # 清理旧的前端文件（保留用户自定义文件）
-    if [ -d "web/admin-spa/dist" ]; then
-        print_info "清理旧的前端文件..."
-        # 只删除已知的前端文件，保留用户可能添加的自定义文件
-        rm -rf web/admin-spa/dist/assets 2>/dev/null
-        rm -f web/admin-spa/dist/index.html 2>/dev/null
-        rm -f web/admin-spa/dist/favicon.ico 2>/dev/null
-    fi
-    
-    # 从 web-dist 分支获取构建好的文件
-    if git ls-remote --heads origin web-dist | grep -q web-dist; then
-        print_info "从 web-dist 分支下载最新前端文件..."
-        
-        # 创建临时目录用于 clone
-        TEMP_CLONE_DIR=$(mktemp -d)
-        
-        # 添加错误处理
-        if [ ! -d "$TEMP_CLONE_DIR" ]; then
-            print_error "无法创建临时目录"
-            return 1
-        fi
-        
-        # 使用 sparse-checkout 来只获取需要的文件，添加重试机制
-        local clone_success=false
-        for attempt in 1 2 3; do
-            print_info "尝试下载前端文件 (第 $attempt 次)..."
+    # 检查前端文件（已通过 git pull 更新）
+    print_info "检查前端文件..."
 
-            if git clone --depth 1 --branch web-dist --single-branch \
-                https://github.com/whoismonay/claude-relay-service.git \
-                "$TEMP_CLONE_DIR" 2>/dev/null; then
-                clone_success=true
-                break
-            fi
-
-            # 如果 HTTPS 失败，尝试使用当前仓库的 remote URL
-            REPO_URL=$(git config --get remote.origin.url)
-            if git clone --depth 1 --branch web-dist --single-branch "$REPO_URL" "$TEMP_CLONE_DIR" 2>/dev/null; then
-                clone_success=true
-                break
-            fi
-            
-            if [ $attempt -lt 3 ]; then
-                print_warning "下载失败，等待 2 秒后重试..."
-                sleep 2
-            fi
-        done
-        
-        if [ "$clone_success" = false ]; then
-            print_error "无法下载前端文件"
-            rm -rf "$TEMP_CLONE_DIR"
-            return 1
-        fi
-        
-        # 复制文件到目标目录（排除 .git 和 README.md）
-        rsync -av --exclude='.git' --exclude='README.md' "$TEMP_CLONE_DIR/" web/admin-spa/dist/ 2>/dev/null || {
-            # 如果没有 rsync，使用 cp
-            cp -r "$TEMP_CLONE_DIR"/* web/admin-spa/dist/ 2>/dev/null
-            rm -rf web/admin-spa/dist/.git 2>/dev/null
-            rm -f web/admin-spa/dist/README.md 2>/dev/null
-        }
-        
-        # 清理临时目录
-        rm -rf "$TEMP_CLONE_DIR"
-        
-        print_success "前端文件更新完成"
+    # 前端文件应该已经通过 git pull 更新，直接检查是否存在
+    if [ -f "web/admin-spa/dist/index.html" ]; then
+        print_success "前端文件已更新"
     else
-        print_warning "web-dist 分支不存在，尝试本地构建..."
-        
-        # 检查是否有 Node.js 和 npm
-        if command_exists npm; then
-            # 回退到原始构建方式
-            if [ -f "web/admin-spa/package.json" ]; then
-                print_info "开始本地构建前端..."
-                cd web/admin-spa
-                npm install
-                npm run build
-                cd ../..
+        print_warning "前端文件不存在，尝试本地构建..."
+
+        # 回退方案：本地构建
+        if command_exists npm && [ -f "web/admin-spa/package.json" ]; then
+            print_info "开始本地构建前端..."
+            mkdir -p web/admin-spa/dist
+            cd web/admin-spa
+            npm install
+            npm run build
+            cd ../..
+
+            if [ -f "web/admin-spa/dist/index.html" ]; then
                 print_success "前端本地构建完成"
             else
-                print_error "无法找到前端项目文件"
+                print_error "前端构建失败"
+                return 1
             fi
         else
-            print_error "无法获取前端文件，且本地环境不支持构建"
-            print_info "请确保仓库已正确配置 web-dist 分支"
+            print_error "无法构建前端文件，请检查 Node.js 环境"
+            return 1
         fi
     fi
     
