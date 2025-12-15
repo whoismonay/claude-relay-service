@@ -8,6 +8,121 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Claude Relay Service 是一个多平台 AI API 中转服务，支持 **Claude (官方/Console)、Gemini、OpenAI Responses (Codex)、AWS Bedrock、Azure OpenAI、Droid (Factory.ai)、CCR** 等多种账户类型。提供完整的多账户管理、API Key 认证、代理配置、用户管理、LDAP认证、Webhook通知和现代化 Web 管理界面。该服务作为客户端（如 Claude Code、Gemini CLI、Codex、Droid CLI、Cherry Studio 等）与 AI API 之间的中间件，提供认证、限流、监控、定价计算、成本统计等功能。
 
+## ⚠️ Fork 仓库自定义维护说明
+
+**本仓库是从官方仓库 fork 的自定义版本，采用双分支策略维护：**
+
+### 分支策略
+
+- **main 分支**: 保持与官方仓库同步（镜像官方），用于接收上游更新
+- **myMain 分支**: 自定义主分支，实际部署使用，包含自定义功能和配置
+- **feature/* 分支**: 功能开发分支，基于 myMain 创建，开发完成后合并回 myMain
+
+### Git Remote 配置
+
+```bash
+origin    https://github.com/whoismonay/claude-relay-service.git (fetch/push)   # 你的 fork
+upstream  https://github.com/Wei-Shaw/claude-relay-service.git (fetch/push)     # 官方仓库
+```
+
+### 自定义管理工具 (mcrs)
+
+**为了支持自定义分支维护，本项目提供 `mcrs` (My CRS) 自定义管理命令：**
+
+- **脚本位置**: `scripts/manage-custom.sh`
+- **软链接**: `/usr/bin/mcrs`
+- **配置目录**: `~/.config/mcrs/`
+- **仓库来源**: `https://github.com/whoismonay/claude-relay-service.git`
+
+**与官方 `crs` 命令的区别：**
+
+| 功能 | crs (官方) | mcrs (自定义) |
+|------|-----------|--------------|
+| 仓库来源 | Wei-Shaw (官方) | whoismonay (fork) |
+| 更新分支 | 固定 main | 动态识别当前分支 |
+| install 目标分支 | main | myMain |
+| 适用场景 | 官方版本部署 | 自定义版本维护 |
+
+**常用 mcrs 命令：**
+
+```bash
+mcrs install           # 安装服务（自动克隆 fork 并切换到 myMain 分支）
+mcrs update            # 更新当前分支（myMain 或功能分支）
+mcrs switch-branch     # 切换分支（交互式）
+mcrs start/stop/restart  # 服务控制
+mcrs status            # 查看状态
+mcrs help              # 查看帮助
+```
+
+### 部署和迁移
+
+**完整文档**: 参见 `DEPLOY_CUSTOM.md` 文件
+
+**快速迁移（从官方版本切换到自定义版本）：**
+
+```bash
+# 一键迁移脚本（零停机）
+curl -fsSL https://raw.githubusercontent.com/whoismonay/claude-relay-service/myMain/scripts/setup-mcrs.sh | bash
+```
+
+**全新服务器安装：**
+
+```bash
+# 下载 mcrs 脚本
+curl -fsSL https://raw.githubusercontent.com/whoismonay/claude-relay-service/myMain/scripts/manage-custom.sh -o /tmp/mcrs
+chmod +x /tmp/mcrs && sudo mv /tmp/mcrs /usr/bin/mcrs
+
+# 运行安装（会自动安装到 myMain 分支）
+mcrs install
+```
+
+### 日常工作流程
+
+**开发新功能：**
+```bash
+# 本地
+git checkout myMain
+git checkout -b feature/new-feature
+# ... 开发并提交 ...
+git checkout myMain
+git merge feature/new-feature
+git push origin myMain
+
+# 服务器
+mcrs update  # 更新到最新的 myMain
+```
+
+**同步官方更新：**
+```bash
+# 本地
+git checkout main
+git pull upstream main  # 或通过 GitHub "Sync fork" 按钮
+git push origin main
+
+git checkout myMain
+git merge main  # 合并官方更新到自定义分支
+# 解决冲突（如果有）
+git push origin myMain
+
+# 服务器
+mcrs update  # 应用包含官方更新的 myMain
+```
+
+### 重要文件位置
+
+- **自定义管理脚本**: `scripts/manage-custom.sh` (mcrs 命令)
+- **一键迁移脚本**: `scripts/setup-mcrs.sh` (从官方版本迁移)
+- **部署文档**: `DEPLOY_CUSTOM.md` (完整的部署和维护指南)
+- **官方管理脚本**: `scripts/manage.sh` (crs 命令，保持不变)
+
+### 注意事项
+
+1. **配置文件隔离**: `.env`、`config/config.js`、`data/init.json` 不受 Git 控制，切换分支时不会丢失
+2. **Redis 数据安全**: Redis 数据独立存储，分支切换不影响已有数据
+3. **零停机切换**: Git 分支切换只修改磁盘文件，不影响运行中的 Node.js 进程
+4. **服务重启时机**: 只有执行 `mcrs restart` 或 `mcrs update` 时才会应用新代码
+5. **冲突处理**: 合并官方更新时，`scripts/manage-custom.sh` 可能产生冲突，需手动保留自定义逻辑
+
 ## 核心架构
 
 ### 关键架构概念
@@ -457,7 +572,9 @@ npm run setup  # 自动生成密钥并创建管理员账户
 - CLI工具：`cli/index.js` 和 `src/cli/` 目录
 - 脚本目录：`scripts/` 目录
   - `setup.js` - 初始化脚本
-  - `manage.js` - 服务管理
+  - `manage.sh` - 官方服务管理脚本（crs 命令）
+  - `manage-custom.sh` - 自定义服务管理脚本（mcrs 命令）
+  - `setup-mcrs.sh` - 一键迁移脚本（从官方版本切换到自定义版本）
   - `migrate-apikey-expiry.js` - API Key过期迁移
   - `fix-usage-stats.js` - 使用统计修复
   - `data-transfer.js` / `data-transfer-enhanced.js` - 数据导入导出
