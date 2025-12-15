@@ -429,7 +429,15 @@ install_service() {
     
     # 进入项目目录
     cd "$APP_DIR"
-    
+
+    # 切换到 myMain 分支
+    print_info "切换到 myMain 分支..."
+    if git checkout myMain; then
+        print_success "已切换到 myMain 分支"
+    else
+        print_warning "myMain 分支不存在，保持在 main 分支"
+    fi
+
     # 安装npm依赖
     print_info "安装项目依赖..."
     npm install
@@ -546,8 +554,15 @@ EOF
     
     # 获取公网IP
     local public_ip=$(get_public_ip)
-    
+
+    # 获取当前分支和版本
+    local current_branch=$(git branch --show-current 2>/dev/null || echo "unknown")
+    local current_version=$(cat VERSION 2>/dev/null || echo "unknown")
+
     echo -e "\n${GREEN}服务已成功安装并启动！${NC}"
+    echo -e "\n${YELLOW}安装信息：${NC}"
+    echo -e "  Git 分支: ${GREEN}$current_branch${NC}"
+    echo -e "  代码版本: ${GREEN}$current_version${NC}"
     echo -e "\n${YELLOW}访问地址：${NC}"
     echo -e "  本地 Web: ${GREEN}http://localhost:$APP_PORT/web${NC}"
     echo -e "  本地 API: ${GREEN}http://localhost:$APP_PORT/api/v1${NC}"
